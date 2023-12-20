@@ -8,7 +8,7 @@ from .point import Point
 from .beach_line import Arc, BreakPoint, BeachLine
 from .tesselation import Vertex, HalfEdge, Tesselation
 from .sweep_line import SweepLine
-from .geom_utils import get_split_point, check_clockwise
+from .geom_utils import check_clockwise
 
 
 class Event(ABC):
@@ -143,7 +143,7 @@ class SiteEvent(Event):
             return
 
         # 2.
-        child_side, parent, splitted_arc = self.beach_line.search(
+        parent_side, parent, splitted_arc = self.beach_line.search(
             self.point.x, y_sweep_line=self.point.y
         )
 
@@ -155,20 +155,18 @@ class SiteEvent(Event):
         arc_2 = Arc(self.point)
         arc_3 = Arc(splitted_arc.focus)
         right_bp = BreakPoint(left=arc_2, right=arc_3)
-        left_bp = BreakPoint(parent, child_side, arc_1, right_bp)
+        left_bp = BreakPoint(parent, parent_side, arc_1, right_bp)
 
         # 4.
         filter_1 = lambda x: x.site == splitted_arc.focus
         filter_2 = lambda x: x.site == self.point
 
         he_1 = HalfEdge(
-            # Vertex(get_split_point(splitted_arc, self.point.x, self.point.y)),
             Vertex((np.inf, np.inf), breakpoint=right_bp),
             incident_face=next(filter(filter_1, self.voronoi.faces)),
         )
 
         he_2 = HalfEdge(
-            # Vertex(get_split_point(splitted_arc, self.point.x, self.point.y)),
             Vertex((np.inf, np.inf), breakpoint=left_bp),
             twin=he_1,
             incident_face=next(filter(filter_2, self.voronoi.faces)),
@@ -181,11 +179,12 @@ class SiteEvent(Event):
         left_bp.set_half_edge(he_2)
 
         if parent:
-            setattr(left_bp.parent, child_side, left_bp)
+            setattr(left_bp.parent, parent_side, left_bp)
         else:
             self.beach_line.root = left_bp
 
-        # self.beach_line.rebalance()
+        # rebalance the BeachLine
+        self.beach_line.balance_and_propagate(left_bp)
 
         # free some space
         del splitted_arc.event, splitted_arc

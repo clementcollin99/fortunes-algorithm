@@ -6,15 +6,11 @@ from .tesselation import Vertex
 OFFSET = 10
 
 
-def get_split_point(arc, x, y_sweep_line):
-    y = (
-        x**2
-        - 2 * arc.focus.x * x
-        + arc.focus.x**2
-        + arc.focus.y**2
-        - y_sweep_line**2
-    ) / (2 * (arc.focus.y - y_sweep_line))
-    return x, y
+def get_y_parabola(x: float, focus: Point, y_sweep_line: float):
+    return list(
+        (x**2 - 2 * focus.x * x + focus.x**2 + focus.y**2 - y_sweep_line**2)
+        / (2 * (focus.y - y_sweep_line))
+    )
 
 
 def get_intersection(breakpoint, y_sweep_line: float, max_y: float = None):

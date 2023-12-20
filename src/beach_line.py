@@ -2,28 +2,27 @@ import numpy as np
 
 from .point import Point
 from .tesselation import HalfEdge
-from .equations import get_y_parabola
-from .geom_utils import get_intersection
+from .geom_utils import get_intersection, get_y_parabola
 
 
 class Node:
     def __init__(
         self,
         parent: "Node" = None,
-        child_side: str = None,
+        parent_side: str = None,
         left: "Node" = None,
         right: "Node" = None,
     ):
         self.parent = parent
-        self.child_side = child_side
+        self.parent_side = parent_side
         self.left = left
         self.right = right
         left.set_parent(self, "left") if left else None
         right.set_parent(self, "right") if right else None
 
-    def set_parent(self, parent: "Node", child_side: str):
+    def set_parent(self, parent: "Node", parent_side: str):
         self.parent = parent
-        self.child_side = child_side
+        self.parent_side = parent_side
 
     def set_left_child(self, left: "Node"):
         self.left = left
@@ -41,11 +40,11 @@ class Arc(Node):
         self,
         focus: Point,
         parent: Node = None,
-        child_side: str = None,
+        parent_side: str = None,
         left: Node = None,
         right: Node = None,
     ):
-        super().__init__(parent, child_side, left, right)
+        super().__init__(parent, parent_side, left, right)
         self.focus = focus
         self.event = None
 
@@ -56,7 +55,7 @@ class Arc(Node):
         if self.focus.y - y_sweep_line == 0:
             return
 
-        return list(eval(get_y_parabola))
+        return get_y_parabola(x, self.focus, y_sweep_line)
 
     def get_key(self, y_sweep_line: float = None):
         return self.focus.x
@@ -66,12 +65,12 @@ class BreakPoint(Node):
     def __init__(
         self,
         parent=None,
-        child_side=None,
+        parent_side=None,
         left=None,
         right=None,
         half_edge: HalfEdge = None,
     ):
-        super().__init__(parent, child_side, left, right)
+        super().__init__(parent, parent_side, left, right)
         self.half_edge = half_edge
 
     def set_half_edge(self, half_edge: HalfEdge):
@@ -199,51 +198,123 @@ class BeachLine:
 
     def delete(self, arc: Arc):
         left_bp, right_bp = self.get_surrounding_breakpoints(arc)
-        setattr(arc.parent, arc.child_side, None)
-        opposite_side = "right" if arc.child_side == "left" else "left"
+        setattr(arc.parent, arc.parent_side, None)
+        opposite_side = "right" if arc.parent_side == "left" else "left"
         setattr(
             arc.parent.parent,
-            arc.parent.child_side,
+            arc.parent.parent_side,
             getattr(arc.parent, opposite_side),
         )
 
         removed = right_bp if opposite_side == "right" else left_bp
         updated = right_bp if opposite_side == "left" else left_bp
 
+        self.balance_and_propagate(arc.parent)
+
         del arc
         return left_bp, right_bp, removed, updated
 
-    def rebalance(self):
-        nodes = self.get_nodes_ordered()
+    def get_bf(self, node):
+        return self.get_depth(node.right) - self.get_depth(node.left)
 
-        def _recursive(nodes, parent: BreakPoint = None, child_side: str = None):
-            if not nodes:
-                return
+    def get_depth(self, node):
+        if not node:
+            return 0
 
-            mid = len(nodes) // 2
-            node = nodes[mid]
+        return 1 + max(self.get_depth(node.right), self.get_depth(node.left))
 
-            node.set_parent(parent, child_side)
-            node.left = _recursive(nodes[:mid], node, "left")
-            node.right = _recursive(nodes[mid + 1 :], node, "right")
-
+    def left_rotate(self, node):
+        if self.get_depth(node) < 3:
             return node
 
-        self.root = _recursive(nodes)
+        right = node.right
+        node.right = right.left
+
+        if right.left:
+            right.left.parent = node
+            right.left.parent_side = "right"
+
+        right.left = node
+
+        parent = node.parent
+        parent_side = node.parent_side
+        node.parent = right
+        node.parent_side = "left"
+
+        right.parent = parent
+        right.parent_side = parent_side
+
+        if parent:
+            setattr(parent, parent_side, right)
+        else:
+            self.root = right
+
+        return right
+
+    def right_rotate(self, node):
+        if self.get_depth(node) < 3:
+            return node
+
+        left = node.left
+        node.left = left.right
+
+        if node.left:
+            node.left.parent = node
+            node.left.parent_side = "left"
+
+        left.right = node
+
+        parent = node.parent
+        parent_side = node.parent_side
+        node.parent = left
+        node.parent_side = "right"
+
+        left.parent = parent
+        left.parent_side = parent_side
+
+        if parent:
+            setattr(parent, parent_side, left)
+        else:
+            self.root = left
+
+        return left
+
+    def balance(self, node):
+        root = node
+
+        if self.get_bf(node) == -2:
+            if self.get_bf(node.left) == 1:
+                self.left_rotate(node.left)
+
+            root = self.right_rotate(node)
+
+        elif self.get_bf(node) == 2:
+            if self.get_bf(node.right) == -1:
+                self.right_rotate(node.right)
+
+            root = self.left_rotate(node)
+
+        return root
+
+    def balance_and_propagate(self, node):
+        root = self.balance(node)
+
+        if root.parent:
+            self.balance_and_propagate(root.parent)
 
     def search(
         self,
         x: float,
         y_sweep_line: float,
         parent: Arc | BreakPoint = None,
-        child_side: str = None,
+        parent_side: str = None,
         node: Arc | BreakPoint = None,
     ):
         if not node:
             node = self.root
 
         if isinstance(node, Arc):
-            return child_side, parent, node
+            return parent_side, parent, node
 
         if node.get_key(y_sweep_line) > x:
             return self.search(x, y_sweep_line, node, "left", node.left)
