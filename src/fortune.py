@@ -1,7 +1,7 @@
 from .point import Point
 from .bounding_box import BoundingBox
 from .beach_line import BeachLine
-from .event_queue import SiteEvent, EventQueue
+from .event_queue import SiteEvent, CircleEvent, EventQueue
 from .tesselation import Tesselation, Face
 from .visualizer import Visualizer
 from .sweep_line import SweepLine
@@ -30,6 +30,9 @@ class Fortune:
         # create the queue of events
         self.event_queue = EventQueue()
 
+        # records of valid circle events
+        self.past_events = []
+
         # enqueue the "site events" to come
         for site in self.sites:
             self.event_queue.put(
@@ -40,6 +43,7 @@ class Fortune:
                     self.beach_line,
                     self.sweep_line,
                     self.bounding_box,
+                    self.past_events,
                 )
             )
 
@@ -69,11 +73,19 @@ class Fortune:
             edges=self.voronoi.half_edges,
             vertices=self.voronoi.vertices,
             sites=self.sites,
-            fig_name=f"voronoi_diagram_1",
+            fig_name=f"step_{i}",
         )
 
         self.visualizer.plot(
             edges=self.voronoi.half_edges,
             sites=self.sites,
-            fig_name=f"voronoi_diagram_2",
+            fig_name=f"step_{i+1}",
+        )
+
+        # solve the largest circle problem and plot the solution
+        self.visualizer.plot(
+            edges=self.voronoi.half_edges,
+            sites=self.sites,
+            event=max(self.past_events, key=lambda x: x.radius),
+            fig_name=f"largest_circle",
         )

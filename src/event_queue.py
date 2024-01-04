@@ -20,6 +20,7 @@ class Event(ABC):
         beach_line: BeachLine,
         sweep_line: SweepLine,
         bounding_box: BoundingBox,
+        past_events: list,
     ):
         self.point = point
         self.event_queue = event_queue
@@ -27,6 +28,7 @@ class Event(ABC):
         self.beach_line = beach_line
         self.sweep_line = sweep_line
         self.bounding_box = bounding_box
+        self.past_events = past_events
         self.is_valid = True
 
     @property
@@ -96,6 +98,7 @@ class Event(ABC):
             predecessor,
             successor,
             radius,
+            self.past_events,
         )
         self.event_queue.put(circle_event)
         arc.set_event(circle_event)
@@ -116,6 +119,7 @@ class SiteEvent(Event):
         beach_line: BeachLine,
         sweep_line: SweepLine,
         bounding_box: BoundingBox,
+        past_events: list,
     ):
         super().__init__(
             point,
@@ -124,6 +128,7 @@ class SiteEvent(Event):
             beach_line,
             sweep_line,
             bounding_box,
+            past_events,
         )
 
     @property
@@ -207,6 +212,7 @@ class CircleEvent(Event):
         predecessor: Arc,
         successor: Arc,
         radius: float,
+        past_events: list,
     ):
         super().__init__(
             point,
@@ -215,6 +221,7 @@ class CircleEvent(Event):
             beach_line,
             sweep_line,
             bounding_box,
+            past_events,
         )
         self.arc = arc
         self.predecessor = predecessor
@@ -237,6 +244,9 @@ class CircleEvent(Event):
         # if the event has been removed, skip
         if not self.is_valid:
             return
+
+        # record it to solve the largest circle problem
+        self.past_events.append(self)
 
         # first, update the height of the sweep line
         self.sweep_line.set_height(self.point.y - self.radius)

@@ -175,16 +175,22 @@ class Visualizer:
 
         return
 
+    def plot_circle(self, x: float, y: float, radius: float, is_valid: bool = True):
+        """
+        Plot a circle.
+        """
+        color = Colors.valid_circle if is_valid else Colors.invalid_circle
+        circle = plt.Circle((x, y), radius, fill=False, color=color, linewidth=2)
+        self.canvas.add_artist(circle)
+
+        return
+
     def plot_circle_event(self, event):
         """
-        Plot the circles for circle events.
+        Plot the circle of a circle event.
         """
         if isinstance(event, CircleEvent):
-            x, y = event.point.x, event.point.y
-            radius = event.radius
-            color = Colors.valid_circle if event.is_valid else Colors.invalid_circle
-            circle = plt.Circle((x, y), radius, fill=False, color=color, linewidth=2)
-            self.canvas.add_artist(circle)
+            self.plot_circle(event.point.x, event.point.y, event.radius, event.is_valid)
 
         return
 
@@ -204,6 +210,10 @@ class Visualizer:
         plt.close("all")
         _, self.canvas = plt.subplots(figsize=self.figsize)
         self.set_limits()
+
+        plt.xticks([])
+        plt.yticks([])
+        plt.tight_layout()
 
         self.plot_sweep_line(y_sweep_line) if y_sweep_line else np.nan
         self.plot_edges(edges) if edges else np.nan

@@ -224,6 +224,16 @@ class BeachLine:
         return 1 + max(self.get_depth(node.right), self.get_depth(node.left))
 
     def left_rotate(self, node):
+        """
+        T1, T2, T3 and T4 are subtrees.
+            z                             y 
+           / \                          /   \ 
+          T1   y    left_rotate(z)     z     x  
+              / \   - - - - - - - >   / \   / \ 
+             T2  x                   T1 T2 T3 T4
+                / \ 
+              T3  T4
+        """
         if self.get_depth(node) < 3:
             return node
 
@@ -252,6 +262,17 @@ class BeachLine:
         return right
 
     def right_rotate(self, node):
+        """
+        T1, T2, T3 and T4 are subtrees.
+                 z                              y       
+                / \                           /   \     
+               y   T4   Right Rotate (z)     z     x    
+              / \       - - - - - - - - >   / \   / \ 
+             x   T3                        T1 T2 T3 T4
+            / \ 
+          T1   T2
+
+        """
         if self.get_depth(node) < 3:
             return node
 
