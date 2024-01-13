@@ -22,7 +22,7 @@ class Colors:
 
 class Visualizer:
     def __init__(
-        self, voronoi, bounding_box, offset=1, figsize=(8, 8), save_dir="images"
+        self, voronoi, bounding_box, offset=2, figsize=(8, 8), save_dir="images"
     ):
         """
         A useful class to visualize the Fortune's algorithm execution
@@ -175,13 +175,23 @@ class Visualizer:
 
         return
 
-    def plot_circle(self, x: float, y: float, radius: float, is_valid: bool = True):
+    def plot_circle(
+        self,
+        x: float,
+        y: float,
+        radius: float,
+        is_valid: bool = True,
+        plot_center: bool = True,
+    ):
         """
         Plot a circle.
         """
         color = Colors.valid_circle if is_valid else Colors.invalid_circle
         circle = plt.Circle((x, y), radius, fill=False, color=color, linewidth=2)
         self.canvas.add_artist(circle)
+
+        if plot_center:
+            self.canvas.scatter(x, y, s=50, color=color)
 
         return
 

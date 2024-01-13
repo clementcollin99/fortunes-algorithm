@@ -14,7 +14,7 @@ class Fortune:
         self.sites.sort(key=lambda p: p.y)
 
         # create a bounding box around the sites
-        self.bounding_box = BoundingBox(self.sites)
+        self.bounding_box = BoundingBox(self.sites, 0.5)
 
         # create the beach line
         self.beach_line = BeachLine()
@@ -84,8 +84,19 @@ class Fortune:
 
         # solve the largest circle problem and plot the solution
         self.visualizer.plot(
+            sites=self.sites,
+            fig_name=f"largest_circle_1",
+        )
+
+        self.visualizer.plot(
+            sites=self.sites,
+            event=max(self.past_events, key=lambda x: x.radius),
+            fig_name=f"largest_circle_2",
+        )
+
+        self.visualizer.plot(
             edges=self.voronoi.half_edges,
             sites=self.sites,
             event=max(self.past_events, key=lambda x: x.radius),
-            fig_name=f"largest_circle",
+            fig_name=f"largest_circle_3",
         )
